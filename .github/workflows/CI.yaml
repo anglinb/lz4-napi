@@ -110,6 +110,9 @@ jobs:
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         run: yarn config set supportedArchitectures.cpu "ia32"
         shell: bash
+      - name: Prepare CI build
+        run: node scripts/prepare-ci.js
+        shell: bash
       - name: Install dependencies
         run: yarn install
       - name: Setup node x86
@@ -165,6 +168,7 @@ jobs:
             whoami
             env
             freebsd-version
+            node scripts/prepare-ci.js
             yarn install --mode=skip-build
             yarn build
             rm -rf node_modules
@@ -205,6 +209,9 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: yarn
           architecture: ${{ matrix.settings.architecture }}
+      - name: Prepare CI build
+        run: node scripts/prepare-ci.js
+        shell: bash
       - name: Install dependencies
         run: yarn install --mode=skip-build
       - name: Download artifacts
@@ -235,6 +242,9 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: yarn
+      - name: Prepare CI build
+        run: node scripts/prepare-ci.js
+        shell: bash
       - name: Install dependencies
         run: yarn install
       - name: Download artifacts
@@ -409,6 +419,9 @@ jobs:
         with:
           node-version: 20
           cache: yarn
+      - name: Prepare CI build
+        run: node scripts/prepare-ci.js
+        shell: bash
       - name: Install dependencies
         run: yarn install --mode=skip-build
       - name: Download all artifacts
@@ -420,19 +433,14 @@ jobs:
       - name: List packages
         run: ls -R ./npm
         shell: bash
+      - name: Restore optionalDependencies
+        run: node scripts/restore-ci.js
+        shell: bash
       - name: Publish
         run: |
           npm config set provenance true
-          if git log -1 --pretty=%B | grep "^[0-9]\+\.[0-9]\+\.[0-9]\+$";
-          then
-            echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
-            npm publish --access public
-          elif git log -1 --pretty=%B | grep "^[0-9]\+\.[0-9]\+\.[0-9]\+";
-          then
-            echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
-            npm publish --tag next --access public
-          else
-            echo "Not a release, skipping publish"
-          fi
+          # Always publish since we're on a fork with our own versions
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
+          npm publish --access public --tag latest
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
